@@ -1,0 +1,298 @@
+INSTALAÇÃO DAS FERRAMENTAS
+
+    npm init -y
+    npm install express mongoose cors
+
+    Mongoose
+        Mongoose é uma biblioteca de modelagem de objetos para o MongoDB, 
+        amplamente usada no ecossistema Node.js. Ela fornece uma camada 
+        ODM (Object Data Modeling) que simplifica o mapeamento de documentos 
+        MongoDB para objetos JavaScript, permitindo definir esquemas com tipos, 
+        validações e middlewares. Mantida pela Automattic, é licenciada sob MIT e 
+        compatível também com Deno (em versão alfa).
+
+    Express
+        Express (ou Express.js) é um framework web minimalista e flexível para 
+        Node.js, amplamente usado para criar aplicações e APIs do lado do servidor. 
+        Ele simplifica o desenvolvimento de servidores HTTP ao fornecer uma camada 
+        robusta de recursos para roteamento, manipulação de solicitações e 
+        integração com middleware.
+
+
+
+
+Perfeito 👨‍🏫
+Vou montar um **CRUD completo com Node.js + MongoDB + Front-end HTML simples**, ideal para aula prática.
+
+Tecnologias usadas:
+
+* **Node.js**
+* **Express**
+* **MongoDB**
+* **Mongoose**
+* HTML + JavaScript puro (fetch API)
+
+---
+
+# 📁 1️⃣ Estrutura do Projeto
+
+```bash
+crud-completo/
+ ├── server.js
+ ├── models/
+ │    └── Pessoa.js
+ └── public/
+      └── index.html
+```
+
+---
+
+# 📦 2️⃣ Instalar Dependências
+
+```bash
+npm init -y
+npm install express mongoose cors
+```
+
+---
+
+# 🧠 3️⃣ Model - Pessoa
+
+📁 `models/Pessoa.js`
+
+```js
+const mongoose = require('mongoose');
+
+const PessoaSchema = new mongoose.Schema({
+  nome: { type: String, required: true },
+  email: { type: String, required: true },
+  dataCadastro: { type: Date, default: Date.now }
+});
+
+module.exports = mongoose.model('Pessoa', PessoaSchema);
+```
+
+---
+
+# 🚀 4️⃣ Servidor Completo
+
+📁 `server.js`
+
+```js
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const path = require('path');
+
+const app = express();
+
+app.use(express.json());
+app.use(cors());
+
+// Servir arquivos estáticos
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Conexão MongoDB
+mongoose.connect('mongodb://localhost:27017/cadastro')
+  .then(() => console.log('MongoDB conectado'))
+  .catch(err => console.log(err));
+
+const Pessoa = require('./models/Pessoa');
+
+// ==================== CRUD ====================
+
+// CREATE
+app.post('/pessoas', async (req, res) => {
+  const pessoa = new Pessoa(req.body);
+  const salva = await pessoa.save();
+  res.json(salva);
+});
+
+// READ
+app.get('/pessoas', async (req, res) => {
+  const pessoas = await Pessoa.find();
+  res.json(pessoas);
+});
+
+// UPDATE
+app.put('/pessoas/:id', async (req, res) => {
+  const atualizada = await Pessoa.findByIdAndUpdate(
+    req.params.id,
+    req.body,
+    { new: true }
+  );
+  res.json(atualizada);
+});
+
+// DELETE
+app.delete('/pessoas/:id', async (req, res) => {
+  await Pessoa.findByIdAndDelete(req.params.id);
+  res.json({ mensagem: "Pessoa removida" });
+});
+
+// Servidor
+app.listen(3000, () => {
+  console.log('Servidor rodando em http://localhost:3000');
+});
+```
+
+---
+
+# 🌐 5️⃣ Front-End Simples
+
+📁 `public/index.html`
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>CRUD Simples</title>
+</head>
+<body>
+
+  <h2>Cadastro de Pessoas</h2>
+
+  <input type="hidden" id="id">
+  <input type="text" id="nome" placeholder="Nome">
+  <input type="email" id="email" placeholder="Email">
+  <button onclick="salvar()">Salvar</button>
+
+  <h3>Lista de Pessoas</h3>
+  <ul id="lista"></ul>
+
+<script>
+
+const api = "http://localhost:3000/pessoas";
+
+async function carregar() {
+  const res = await fetch(api);
+  const pessoas = await res.json();
+
+  const lista = document.getElementById("lista");
+  lista.innerHTML = "";
+
+  pessoas.forEach(p => {
+    lista.innerHTML += `
+      <li>
+        ${p.nome} - ${p.email}
+        <button onclick="editar('${p._id}', '${p.nome}', '${p.email}')">Editar</button>
+        <button onclick="deletar('${p._id}')">Excluir</button>
+      </li>
+    `;
+  });
+}
+
+async function salvar() {
+  const id = document.getElementById("id").value;
+  const nome = document.getElementById("nome").value;
+  const email = document.getElementById("email").value;
+
+  const dados = { nome, email };
+
+  if (id) {
+    await fetch(`${api}/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(dados)
+    });
+  } else {
+    await fetch(api, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(dados)
+    });
+  }
+
+  limpar();
+  carregar();
+}
+
+function editar(id, nome, email) {
+  document.getElementById("id").value = id;
+  document.getElementById("nome").value = nome;
+  document.getElementById("email").value = email;
+}
+
+async function deletar(id) {
+  await fetch(`${api}/${id}`, { method: "DELETE" });
+  carregar();
+}
+
+function limpar() {
+  document.getElementById("id").value = "";
+  document.getElementById("nome").value = "";
+  document.getElementById("email").value = "";
+}
+
+carregar();
+
+</script>
+
+</body>
+</html>
+```
+
+---
+
+# ▶️ 6️⃣ Rodar o Sistema
+
+### 1️⃣ Iniciar MongoDB
+
+```bash
+mongod
+```
+
+### 2️⃣ Rodar servidor
+
+```bash
+node server.js
+```
+
+### 3️⃣ Abrir no navegador
+
+```
+http://localhost:3000
+```
+
+---
+
+# 🎯 O que o aluno aprende aqui?
+
+✅ Back-end com Express
+✅ Conexão com MongoDB
+✅ Model com Mongoose
+✅ Rotas CRUD
+✅ Front-end HTML simples
+✅ Comunicação via fetch (API REST)
+✅ Integração completa
+
+---
+
+# 🧩 Fluxo explicado para aula
+
+```text
+Usuário digita no HTML
+        ↓
+JavaScript envia via fetch
+        ↓
+Express recebe a requisição
+        ↓
+Mongoose salva no MongoDB
+        ↓
+Resposta volta para o navegador
+        ↓
+Lista atualiza automaticamente
+```
+
+---
+
+Se quiser, posso agora montar:
+
+* 💅 Versão estilizada com Bootstrap
+* 🎨 Versão com Tailwind
+* 🏗 Estrutura organizada em MVC
+* 🔐 Versão com login e autenticação
+* 🐳 Versão com Docker para ensinar deploy
+
+Qual você quer preparar para sua próxima aula?
