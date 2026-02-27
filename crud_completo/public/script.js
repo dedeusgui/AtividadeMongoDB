@@ -1,21 +1,28 @@
 const api = "http://localhost:3000/pessoas";
 
 async function carregar() {
-  const res = await fetch(api);
-  const pessoas = await res.json();
-
-  const lista = document.getElementById("lista");
-  lista.innerHTML = "";
-
-  pessoas.forEach((p) => {
-    lista.innerHTML += `
+  try {
+    const res = await fetch(api);
+    const pessoas = await res.json();
+    if (res.ok) {
+      console.log("Carregado com sucesso");
+    } else {
+      console.log("Erro ao carregar pessoas");
+    }
+    const lista = document.getElementById("lista");
+    lista.innerHTML = "";
+    pessoas.forEach((p) => {
+      lista.innerHTML += `
       <li>
         ${p.nome} - ${p.email} - ${p.telefone}
         <button onclick="editar('${p._id}', '${p.nome}', '${p.email}', '${p.telefone}')">Editar</button>
         <button onclick="deletar('${p._id}')">Excluir</button>
       </li>
     `;
-  });
+    });
+  } catch (err) {
+    console.log(err);
+  }
 }
 
 async function salvar() {
@@ -27,17 +34,35 @@ async function salvar() {
   const dados = { nome, email, telefone };
 
   if (id) {
-    await fetch(`${api}/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(dados),
-    });
+    try {
+      const res = await fetch(`${api}/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dados),
+      });
+      if (res.status === 201) {
+        console.log("Editado com sucesso");
+      } else {
+        console.log("Erro ao editar pessoa");
+      }
+    } catch (err) {
+      console.log(err);
+    }
   } else {
-    await fetch(api, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(dados),
-    });
+    try {
+      const res = await fetch(api, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dados),
+      });
+      if (res.status === 201) {
+        console.log("Salvo com sucesso");
+      } else {
+        console.log("Erro ao salvar pessoa");
+      }
+    } catch (err) {
+      console.log(err);
+    }
   }
 
   limpar(); // limpa os input
@@ -52,8 +77,10 @@ function editar(id, nome, email, telefone) {
 }
 
 async function deletar(id) {
-  await fetch(`${api}/${id}`, { method: "DELETE" });
-  carregar();
+  if (confirm("Tem certeza que deseja excluir?")) {
+    await fetch(`${api}/${id}`, { method: "DELETE" });
+    carregar();
+  }
 }
 
 async function buscar() {
@@ -75,11 +102,14 @@ async function buscar() {
   });
 }
 
+async function contador() {
+  const res = await fetch(api);
+  const pessoas = await res.json();
+  document.getElementById("contador").innerHTML = pessoas.length;
+}
 function limpar() {
   document.getElementById("id").value = "";
   document.getElementById("nome").value = "";
   document.getElementById("email").value = "";
   document.getElementById("telefone").value = "";
 }
-
-carregar(); // atualiza a lista de pessoas
